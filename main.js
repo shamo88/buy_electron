@@ -40,8 +40,11 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     sku TEXT,
-    order_time TEXT
+    order_time TEXT,
+    status TEXT
   )`);
+    // 兼容老表，忽略错误
+    db.run(`ALTER TABLE orders ADD COLUMN status TEXT`, () => { });
 });
 
 async function getmainDriver() {
@@ -185,13 +188,13 @@ ipcMain.handle('search-jd', async (event, keyword, matchKeyword) => {
                         console.log('下单成功');
                         const now = new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
                         db.run(
-                            'INSERT INTO orders (name, sku, order_time) VALUES (?, ?, ?)',
-                            [matched.name, matched.sku, now],
+                            'INSERT INTO orders (name, sku, order_time, status) VALUES (?, ?, ?, ?)',
+                            [matched.name, matched.sku, now, '成功'],
                             (err) => {
                                 if (err) {
                                     console.error('记录订单失败:', err);
                                 } else {
-                                    console.log('订单已记录:', matched.name, matched.sku, now);
+                                    console.log('订单已记录:', matched.name, matched.sku, now, '成功');
                                 }
                             }
                         );
@@ -200,6 +203,20 @@ ipcMain.handle('search-jd', async (event, keyword, matchKeyword) => {
                         ], mailRecipient);
                         // 关闭当前窗口
                         await mainDriver.close();
+                    } else {
+                        // 下单失败也记录
+                        const now = new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
+                        db.run(
+                            'INSERT INTO orders (name, sku, order_time, status) VALUES (?, ?, ?, ?)',
+                            [matched.name, matched.sku, now, '失败'],
+                            (err) => {
+                                if (err) {
+                                    console.error('记录订单失败:', err);
+                                } else {
+                                    console.log('订单已记录:', matched.name, matched.sku, now, '失败');
+                                }
+                            }
+                        );
                     }
                     break;
                 } catch (e) {
@@ -317,14 +334,23 @@ ipcMain.handle('set-config', async (event, newConfig) => {
     }
 });
 
-ipcMain.handle('get-orders', async () => {
+ipcMain.handle('get-orders', async (event, { keyword = '', page = 1, pageSize = 10 } = {}) => {
     return new Promise((resolve, reject) => {
-        db.all('SELECT * FROM orders ORDER BY order_time DESC', (err, rows) => {
-            if (err) {
-                resolve([]);
-            } else {
-                resolve(rows);
+        const where = keyword ? `WHERE name LIKE ? OR sku LIKE ?` : '';
+        const params = keyword ? [`%${keyword}%`, `%${keyword}%`] : [];
+        const offset = (page - 1) * pageSize;
+        db.all(
+            `SELECT * FROM orders ${where} ORDER BY order_time DESC LIMIT ? OFFSET ?`,
+            ...params, pageSize, offset,
+            (err, rows) => {
+                if (err) {
+                    resolve({ total: 0, data: [] });
+                } else {
+                    db.get(`SELECT COUNT(*) as count FROM orders ${where}`, ...params, (err2, row) => {
+                        resolve({ total: row ? row.count : 0, data: rows });
+                    });
+                }
             }
-        });
+        );
     });
 }); 

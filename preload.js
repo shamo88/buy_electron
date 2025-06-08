@@ -6,6 +6,6 @@ contextBridge.exposeInMainWorld('api', {
     startLoginDriver: () => ipcRenderer.invoke('start-login-driver'),
     getConfig: () => ipcRenderer.invoke('get-config'),
     setConfig: (config) => ipcRenderer.invoke('set-config', config),
-    getOrders: () => ipcRenderer.invoke('get-orders'),
+    getOrders: (params) => ipcRenderer.invoke('get-orders', params),
     onShowSettings: (cb) => ipcRenderer.on('show-settings', cb)
 }); 

@@ -100,27 +100,73 @@ const ordersBtn = document.getElementById('ordersBtn');
 const ordersModal = document.getElementById('ordersModal');
 const ordersCloseBtn = document.getElementById('ordersCloseBtn');
 const ordersTableBody = document.getElementById('ordersTableBody');
+const ordersSearchInput = document.getElementById('ordersSearchInput');
+const ordersSearchBtn = document.getElementById('ordersSearchBtn');
+const ordersPagination = document.getElementById('ordersPagination');
 
-ordersBtn.onclick = async () => {
+let ordersPage = 1;
+let ordersPageSize = 10;
+let ordersKeyword = '';
+
+async function loadOrders(page = 1, keyword = '') {
     if (window.api && window.api.getOrders) {
-        const orders = await window.api.getOrders();
+        const { total, data } = await window.api.getOrders({ page, pageSize: ordersPageSize, keyword });
         ordersTableBody.innerHTML = '';
-        if (orders.length === 0) {
-            ordersTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;">暂无订单</td></tr>';
+        if (data.length === 0) {
+            ordersTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;">暂无订单</td></tr>';
         } else {
-            for (const order of orders) {
+            for (const order of data) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
           <td style="padding:6px 8px; border-bottom:1px solid #eee;">${order.name}</td>
           <td style="padding:6px 8px; border-bottom:1px solid #eee;">${order.sku}</td>
           <td style="padding:6px 8px; border-bottom:1px solid #eee;">${order.order_time.replace('T', ' ').replace(/\..*$/, '')}</td>
+          <td style="padding:6px 8px; border-bottom:1px solid #eee;">${order.status || ''}</td>
         `;
                 ordersTableBody.appendChild(tr);
             }
         }
+        // 分页
+        const totalPages = Math.ceil(total / ordersPageSize);
+        ordersPagination.innerHTML = '';
+        if (totalPages > 1) {
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.style.margin = '0 2px';
+                if (i === page) {
+                    btn.style.background = '#1976d2';
+                    btn.style.color = '#fff';
+                }
+                btn.onclick = () => {
+                    ordersPage = i;
+                    loadOrders(ordersPage, ordersKeyword);
+                };
+                ordersPagination.appendChild(btn);
+            }
+        }
     }
+}
+
+ordersBtn.onclick = () => {
+    ordersPage = 1;
+    ordersKeyword = '';
+    ordersSearchInput.value = '';
+    loadOrders(ordersPage, ordersKeyword);
     ordersModal.style.display = 'flex';
 };
 ordersCloseBtn.onclick = () => {
     ordersModal.style.display = 'none';
+};
+ordersSearchBtn.onclick = () => {
+    ordersPage = 1;
+    ordersKeyword = ordersSearchInput.value.trim();
+    loadOrders(ordersPage, ordersKeyword);
+};
+ordersSearchInput.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+        ordersPage = 1;
+        ordersKeyword = ordersSearchInput.value.trim();
+        loadOrders(ordersPage, ordersKeyword);
+    }
 }; 
