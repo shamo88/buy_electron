@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>JD商品搜索</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .left-panel {
+            width: 300px;
+            background: #f5f5f5;
+            padding: 32px 24px;
+            box-sizing: border-box;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 32px 24px;
+            overflow-y: auto;
+            background: #f9fafb;
+        }
+
+        .product-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .product-item {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            padding: 20px 18px 16px 18px;
+            min-width: 320px;
+            max-width: 360px;
+            flex: 1 1 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: box-shadow 0.2s, transform 0.2s;
+            border: 1px solid #e0e0e0;
+            position: relative;
+        }
+
+        .product-item:hover {
+            box-shadow: 0 6px 24px rgba(25, 118, 210, 0.12);
+            transform: translateY(-2px) scale(1.01);
+            border-color: #90caf9;
+        }
+
+        .product-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 2px;
+            line-height: 1.4;
+        }
+
+        .product-link a {
+            color: #1976d2;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        .product-sku {
+            font-size: 0.98rem;
+            color: #fff;
+            background: #1976d2;
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .status-label {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .matched {
+            background: #e8f5e9;
+            color: #388e3c;
+            border: 1px solid #81c784;
+        }
+
+        .not-matched {
+            background: #ffebee;
+            color: #b71c1c;
+            border: 1px solid #ef9a9a;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        input {
+            width: 100%;
+            padding: 6px 8px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1565c0;
+        }
+
+        #settingsModal {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.25);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h2>设置</h2>
+            <button id="startBtn" style="margin-bottom: 16px; background: #d91511;">登录京东</button>
+            <button id="settingsBtn" style="margin-bottom: 8px; background: #1976d2;">设置</button>
+            <button id="ordersBtn" style="margin-bottom: 8px; background: #388e3c;">订单记录</button>
+            <label for="keyword">搜索关键字</label>
+            <input id="keyword" placeholder="搜索关键字">
+            <label for="matchKeyword">匹配关键字</label>
+            <input id="matchKeyword" placeholder="匹配关键字">
+            <label for="refreshInterval">定时刷新时间（秒）</label>
+            <input id="refreshInterval" type="number" min="1" value="10" placeholder="定时刷新时间">
+            <button id="searchBtn">搜索</button>
+            <button id="stopBtn" style="margin-top: 8px; background: #b71c1c;">停止</button>
+        </div>
+        <div class="right-panel">
+            <h2>商品列表</h2>
+            <ul id="result" class="product-list"></ul>
+        </div>
+    </div>
+    <div id="settingsModal">
+        <div
+            style="background:#fff; border-radius:8px; padding:32px 24px; min-width:340px; max-width:90vw; margin:60px auto; box-shadow:0 8px 32px rgba(0,0,0,0.18); position:relative;">
+            <h2 style="margin-top:0;">设置</h2>
+            <form id="settingsForm">
+                <label>userDataDir</label>
+                <input id="set_userDataDir" name="userDataDir" type="text" style="width:100%;margin-bottom:12px;">
+                <label>mailSender</label>
+                <input id="set_mailSender" name="mailSender" type="email" style="width:100%;margin-bottom:12px;">
+                <label>mailPassword</label>
+                <input id="set_mailPassword" name="mailPassword" type="password" style="width:100%;margin-bottom:12px;">
+                <label>mailRecipient</label>
+                <input id="set_mailRecipient" name="mailRecipient" type="email" style="width:100%;margin-bottom:12px;">
+                <label>smtpServer</label>
+                <input id="set_smtpServer" name="smtpServer" type="text" style="width:100%;margin-bottom:12px;">
+                <label>smtpPort</label>
+                <input id="set_smtpPort" name="smtpPort" type="number" style="width:100%;margin-bottom:12px;">
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="button" id="settingsCancelBtn" style="margin-right:12px;">取消</button>
+                    <button type="submit" id="settingsSaveBtn" style="background:#388e3c; color:#fff;">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="ordersModal"
+        style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:1000; align-items:center; justify-content:center;">
+        <div
+            style="background:#fff; border-radius:8px; padding:32px 24px; min-width:340px; max-width:90vw; margin:60px auto; box-shadow:0 8px 32px rgba(0,0,0,0.18); position:relative; max-height:80vh; overflow:auto;">
+            <h2 style="margin-top:0;">历史订单</h2>
+            <table id="ordersTable" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#f5f5f5;">
+                        <th style="padding:6px 8px; border-bottom:1px solid #eee;">商品名称</th>
+                        <th style="padding:6px 8px; border-bottom:1px solid #eee;">SKU</th>
+                        <th style="padding:6px 8px; border-bottom:1px solid #eee;">下单时间</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody"></tbody>
+            </table>
+            <div style="text-align:right; margin-top:16px;">
+                <button type="button" id="ordersCloseBtn">关闭</button>
+            </div>
+        </div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+
+</html>
