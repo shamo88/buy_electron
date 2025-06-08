@@ -156,79 +156,75 @@ ipcMain.handle('search-jd', async (event, keyword, matchKeyword) => {
         });
         const matched = results.find(item => item.name.includes(matchKeyword));
         if (matched) {
-            for (let i = 0; i < 10; i++) {
-                try {
-                    const mainDriver = await getmainDriver();
-                    // 记录当前所有窗口句柄
-                    const handlesBefore = await mainDriver.getAllWindowHandles();
-                    // 在新标签页用window.open跳转，模拟真实用户行为
-                    await mainDriver.executeScript(`window.open(arguments[0], '_blank')`, `https:${matched.href}`);
-                    // 等待新标签页出现
-                    let newHandle;
-                    await mainDriver.wait(async () => {
-                        const handlesAfter = await mainDriver.getAllWindowHandles();
-                        newHandle = handlesAfter.find(h => !handlesBefore.includes(h));
-                        return !!newHandle;
-                    }, 10000);
-                    // 切换到新标签页
-                    await mainDriver.switchTo().window(newHandle);
-                    // 等待InitTradeUrl出现后，模拟点击"立即购买"按钮
-                    await mainDriver.wait(until.elementLocated(By.id('InitTradeUrl')), 10000);
-                    await mainDriver.executeScript(`
+            try {
+                const mainDriver = await getmainDriver();
+                // 记录当前所有窗口句柄
+                const handlesBefore = await mainDriver.getAllWindowHandles();
+                // 在新标签页用window.open跳转，模拟真实用户行为
+                await mainDriver.executeScript(`window.open(arguments[0], '_blank')`, `https:${matched.href}`);
+                // 等待新标签页出现
+                let newHandle;
+                await mainDriver.wait(async () => {
+                    const handlesAfter = await mainDriver.getAllWindowHandles();
+                    newHandle = handlesAfter.find(h => !handlesBefore.includes(h));
+                    return !!newHandle;
+                }, 10000);
+                // 切换到新标签页
+                await mainDriver.switchTo().window(newHandle);
+                // 等待InitTradeUrl出现后，模拟点击"立即购买"按钮
+                await mainDriver.wait(until.elementLocated(By.id('InitTradeUrl')), 10000);
+                await mainDriver.executeScript(`
                         const btn = document.getElementById('InitTradeUrl');
                         if (btn) { btn.click(); }
                     `);
-                    // <button type="submit" class="checkout-submit" id="order-submit" onclick="javascript:submit_Order(null,2);" clstag="pageclick|keycount|trade_201602181|25">
-                    // 等待提交订单按钮出现后，模拟点击"提交订单"按钮
-                    await mainDriver.wait(until.elementLocated(By.id('order-submit')), 10000);
-                    await mainDriver.executeScript(`
+                // <button type="submit" class="checkout-submit" id="order-submit" onclick="javascript:submit_Order(null,2);" clstag="pageclick|keycount|trade_201602181|25">
+                // 等待提交订单按钮出现后，模拟点击"提交订单"按钮
+                await mainDriver.wait(until.elementLocated(By.id('order-submit')), 10000);
+                await mainDriver.executeScript(`
                         const btn = document.getElementById('order-submit');
                         if (btn) { btn.click(); }
                     `);
-                    // 如果当前页面跳转到了https://payc.m.jd.com/d/cashier/?orderId=320610990694&reqInfo=eyJjYXRlZ29yeSI6IjEiLCJvcmRlckFtb3VudCI6IjM5OS4wMCIsIm9yZGVyRXJwUGxhdCI6IkpEIiwidmVyc2lvbiI6IjMuMCIsIm9yZGVySWQiOiIzMjA2MTA5OTA2OTQiLCJwYXlBbW91bnQiOiIzOTkuMDAiLCJjb21wYW55SWQiOiIxMCIsIm9yZGVyVHlwZSI6IjIyIiwidG9UeXBlIjoiMTAifQ==&sign=34833cd7ec602f37353a633892bc2995&appId=pc_ls_mall&cashierId=1，说明下单成功
-                    const currentUrl = await mainDriver.getCurrentUrl();
-                    console.log('currentUrl', currentUrl);
-                    if (currentUrl.includes('https://trade.jd.com/shopping/order/') || currentUrl.includes('https://payc.m.jd.com/d/cashier/')) {
-                        // 下单成功，发送邮件
-                        // 打印
-                        console.log('下单成功');
-                        const now = new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
-                        db.run(
-                            'INSERT INTO orders (name, sku, order_time, status) VALUES (?, ?, ?, ?)',
-                            [matched.name, matched.sku, now, '成功'],
-                            (err) => {
-                                if (err) {
-                                    console.error('记录订单失败:', err);
-                                } else {
-                                    console.log('订单已记录:', matched.name, matched.sku, now, '成功');
-                                }
+                // 如果当前页面跳转到了https://payc.m.jd.com/d/cashier/?orderId=320610990694&reqInfo=eyJjYXRlZ29yeSI6IjEiLCJvcmRlckFtb3VudCI6IjM5OS4wMCIsIm9yZGVyRXJwUGxhdCI6IkpEIiwidmVyc2lvbiI6IjMuMCIsIm9yZGVySWQiOiIzMjA2MTA5OTA2OTQiLCJwYXlBbW91bnQiOiIzOTkuMDAiLCJjb21wYW55SWQiOiIxMCIsIm9yZGVyVHlwZSI6IjIyIiwidG9UeXBlIjoiMTAifQ==&sign=34833cd7ec602f37353a633892bc2995&appId=pc_ls_mall&cashierId=1，说明下单成功
+                const currentUrl = await mainDriver.getCurrentUrl();
+                console.log('currentUrl', currentUrl);
+                if (currentUrl.includes('https://trade.jd.com/shopping/order/') || currentUrl.includes('https://payc.m.jd.com/d/cashier/')) {
+                    // 下单成功，发送邮件
+                    // 打印
+                    console.log('下单成功');
+                    const now = new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
+                    db.run(
+                        'INSERT INTO orders (name, sku, order_time, status) VALUES (?, ?, ?, ?)',
+                        [matched.name, matched.sku, now, '成功'],
+                        (err) => {
+                            if (err) {
+                                console.error('记录订单失败:', err);
+                            } else {
+                                console.log('订单已记录:', matched.name, matched.sku, now, '成功');
                             }
-                        );
-                        sendMail([
-                            { name: matched.name, sku: matched.sku },
-                        ], mailRecipient);
-                        // 关闭当前窗口
-                        await mainDriver.close();
-                    } else {
-                        // 下单失败也记录
-                        const now = new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
-                        db.run(
-                            'INSERT INTO orders (name, sku, order_time, status) VALUES (?, ?, ?, ?)',
-                            [matched.name, matched.sku, now, '失败'],
-                            (err) => {
-                                if (err) {
-                                    console.error('记录订单失败:', err);
-                                } else {
-                                    console.log('订单已记录:', matched.name, matched.sku, now, '失败');
-                                }
+                        }
+                    );
+                    sendMail([
+                        { name: matched.name, sku: matched.sku },
+                    ], mailRecipient);
+                    // 关闭当前窗口
+                    await mainDriver.close();
+                } else {
+                    // 下单失败也记录
+                    const now = new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
+                    db.run(
+                        'INSERT INTO orders (name, sku, order_time, status) VALUES (?, ?, ?, ?)',
+                        [matched.name, matched.sku, now, '失败'],
+                        (err) => {
+                            if (err) {
+                                console.error('记录订单失败:', err);
+                            } else {
+                                console.log('订单已记录:', matched.name, matched.sku, now, '失败');
                             }
-                        );
-                    }
-                    break;
-                } catch (e) {
-                    console.error('下单失败:', e);
-                    continue;
+                        }
+                    );
                 }
+            } catch (e) {
+                console.error('下单失败:', e);
             }
         }
         return results;
