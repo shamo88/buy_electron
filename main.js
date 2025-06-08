@@ -64,17 +64,16 @@ async function getmainDriver() {
         if (userDataDir) {
             options.addArguments(`--user-data-dir=${userDataDir}`);
         }
+        // 根据当前系统，模拟浏览器
         options.addArguments('--start-maximized');
         options.addArguments('--disable-blink-features=AutomationControlled');
         options.addArguments('--disable-infobars');
-        // 根据当前系统，设置user-agent
         const platform = process.platform;
         if (platform === 'darwin') {
             options.addArguments('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0');
         } else if (platform === 'win32') {
             options.addArguments('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0');
         }
-        options.addArguments('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0');
         mainDriver = await new Builder()
             .forBrowser('MicrosoftEdge')
             .setEdgeOptions(options)
