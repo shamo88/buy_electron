@@ -67,6 +67,9 @@ async function getmainDriver() {
         options.addArguments('--start-maximized');
         options.addArguments('--disable-blink-features=AutomationControlled');
         options.addArguments('--disable-infobars');
+        // 模拟mac系统下edge的user-agent
+        options.addArguments('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0');
+        // 模拟windows系统下edge的user-agent
         options.addArguments('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0');
         mainDriver = await new Builder()
             .forBrowser('MicrosoftEdge')
